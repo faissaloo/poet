@@ -174,21 +174,43 @@ done < <(echo "$file_content" | tail -n +"${scroll_y}" | head -n $(( "$terminal_
 
 # Add a footer with ornate styling
 create_separator
+
+enable_edit() {
+  [ "${files[$current_file]}" != "/dev/null" ]
+}
+
+enable_scroll_up() {
+  [ $scroll_y -gt 1 ]
+}
+
+enable_scroll_down() {
+  [ $scroll_y -lt $(($file_lines - $terminal_lines - $non_content_line_count)) ]
+}
+
+enable_next_file() {
+  [ $current_file -lt $(( $total_files - 1 )) ]
+}
+
+enable_previous_file() {
+  [ $current_file -gt 0 ]
+}
+
+
 # Make this handle: Already being at the first poem, already being at the last poem and the file being /dev/null (which is the case if there are no files in the directory)
 controls=" ✧✧ [${scroll_y}-$(($scroll_y + $terminal_lines - $non_content_line_count))/${file_lines}]"
-if [ $current_file -gt 0 ]; then
+if enable_previous_file; then
         controls="${controls} [←] Previous "
 fi
-if [ $current_file -lt $(( $total_files - 1 )) ]; then
+if enable_next_file; then
         controls="${controls} [→] Next "
 fi
-if [ $scroll_y -gt 1 ]; then
+if enable_scroll_up; then
         controls="${controls} [↑] Up "
 fi
-if [ $scroll_y -lt $(( $file_lines - $terminal_lines - $non_content_line_count )) ]; then #make this the length of the file
+if enable_scroll_down; then #make this the length of the file
         controls="${controls} [↓] Down "
 fi
-if [ "${files[${current_file}]}" != "/dev/null" ]; then
+if enable_edit; then
         controls="${controls} [e] Edit "
 fi
 controls="${controls} [n] New  [q] Quit  ✧✧"
@@ -204,35 +226,34 @@ fi
 case $mode in
     'q') echo; break ;;
     'e')
-        if [ "${files[$current_file]}" != "/dev/null" ]; then
-                $EDITOR "${files[$current_file]}"
-                refresh_files=$TRUE
+        if enable_edit; then
+           $EDITOR "${files[$current_file]}"
+           refresh_files=$TRUE
         fi
         ;;
     'n')
         $EDITOR "$poem_dir/.txt"
         refresh_files=$TRUE
         ;;
-    #scrolling functionality that should be added
     '[A') #up
-        if [ $scroll_y -gt 1 ]; then
+        if enable_scroll_up; then
            ((scroll_y--))
         fi
         ;;
     '[B') #down
-        if [ $scroll_y -lt $(($file_lines - $terminal_lines - $non_content_line_count)) ]; then #make this the length of the file
+        if enable_scroll_down; then
            ((scroll_y++))
         fi
         ;;
     '[D')  # Left Arrow key (to go back)
-        if [ $current_file -gt 0 ]; then
+        if enable_previous_file; then
             ((current_file--))
             scroll_y=1
             refresh_files=$TRUE
         fi
         ;;
     '[C')  # Right Arrow key (to go forward)
-        if [ $current_file -lt $((total_files - 1)) ]; then
+        if enable_next_file; then
             ((current_file++))
             scroll_y=1
             refresh_files=$TRUE
