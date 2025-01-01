@@ -12,7 +12,7 @@ poem_dir=""
 
 # Function to show help text
 show_help() {
-  echo "Usage: $0 <directory>"
+  echo "Usage: $0 [-h] <directory>"
   echo "  <directory>   The directory for your textfiles."
   echo "Options:"
   echo "  -h, --help     Show this help message"
@@ -48,6 +48,8 @@ done
 shift $((OPTIND - 1))
 
 if [ $# -ne 1 ]; then
+  show_help
+  echo
   echo "Error: Directory argument is required."
   exit 1
 fi
