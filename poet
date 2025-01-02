@@ -90,6 +90,7 @@ non_content_width=5 #based on the two verticals and line_prefix
 terminal_columns=$(tput cols)
 terminal_lines=$(tput lines)
 escape_char=$(printf "\u1b")
+newline_char=$(echo)
 
 front_buffer=""
 back_buffer="$front_buffer"
@@ -103,9 +104,9 @@ render() {
 	
 	#clear the screen entirely if the height has changed to avoid leaving artifacts behind
 	if [ "${previous_height}" -ne "${new_height}" ]; then
-		printf "$(clear)${front_buffer}"
+		echo "$(clear)${front_buffer}"
 	else
-		printf "$(tput cup 0 0)${front_buffer}"
+		echo "$(tput cup 0 0)${front_buffer}"
 	fi
 	back_buffer="${front_buffer}"
 	front_buffer=""
@@ -123,7 +124,7 @@ create_frame() {
     local padding_right=$(( content_width - ${#plain_text} - padding_left ))
 
     local midsection="$(printf "%*s" $((content_width)) | sed 's/ /'"$horizontal"'/g')"
-    draw_text "${top_left}${midsection}${top_right}\n${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}\n${bottom_left}${midsection}${bottom_right}\n"
+    draw_text "${top_left}${midsection}${top_right}${newline_char}${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}${newline_char}${bottom_left}${midsection}${bottom_right}${newline_char}"
 }
 
 # Function to create a matching ornate separator with a complex pattern and vertical borders
@@ -137,7 +138,7 @@ create_separator() {
     local full_pattern=$(printf "%0.s$repeated_pattern" $(seq 1 $((available_width / pattern_length + 1))))  # Create extra repetition to ensure overshoot
 
     # Truncate the pattern to the exact available width, preferring an overage and trimming if necessary
-    draw_text "${vertical_right}${full_pattern:0:$available_width}${vertical_left}\n"
+    draw_text "${vertical_right}${full_pattern:0:$available_width}${vertical_left}${newline_char}"
 }
 
 # Function to wrap a line of text with vertical borders (left aligned)
@@ -152,7 +153,7 @@ wrap_with_borders() {
     fi
 
     # Left align the text and add vertical borders
-    draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}\n"
+    draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}${newline_char}"
 }
 
 # We should handle empty directories better
