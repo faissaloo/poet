@@ -156,6 +156,12 @@ wrap_with_borders() {
 	draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}${newline_char}"
 }
 
+load_files() {
+	total_files=${#files[@]}
+	# Format tabs and wrap text
+	file_content=$(cat "${files[$current_file]}" | sed 's/\t/    /g' | fold -s -w "$(($terminal_columns - $non_content_width))")
+	file_lines=$(echo "$file_content" | wc -l)
+}
 # We should handle empty directories better
 # Check if the directory exists and contains .txt files
 current_file=0
@@ -166,24 +172,24 @@ while true; do
 	if [ $refresh_files == $TRUE ]; then
 		if [ -f "$poem_dir" ] && file "$poem_dir" | grep -q 'text'; then
 			files=("$poem_dir")
-			total_files=${#files[@]}
-			file_content=$(cat "${files[$current_file]}" | fold -s -w "$(($terminal_columns - $non_content_width))")
-			file_lines=$(echo "$file_content" | wc -l)
+			load_files
 		elif [ -d "$poem_dir" ] && ls "$poem_dir"/*.txt 1>/dev/null 2>&1; then
 			# Store the files in an array
 			files=("$poem_dir"/*.txt)
-			total_files=${#files[@]}
-			file_content=$(cat "${files[$current_file]}" | fold -s -w "$(($terminal_columns - $non_content_width))")
-			file_lines=$(echo "$file_content" | wc -l)
+			load_files
 		else
-			files=("/dev/null")
+			files=()
 			total_files=0
 			file_content="No such text file found"
 			file_lines=0
+
 		fi
 		refresh_files=$FALSE
 	fi
 
+	if [ -z "${files[$current_file]}" ]; then
+		create_frame "No such text file"
+	else
 	# Extract the file name without path
 	filename="${files[$current_file]##*/}"
 
@@ -207,11 +213,16 @@ while true; do
 		wrap_with_borders "${line_prefix}${line}"
 	done < <(echo "$file_content" | tail -n +"${scroll_y}" | head -n $(("$terminal_lines" - $non_content_line_count)))
 
-	# Add a footer with ornate styling
 	create_separator
+	fi
 
 	enable_edit() {
-		[ "${files[$current_file]}" != "/dev/null" ]
+		[ -f "${files[$current_file]}" ]
+	}
+
+	enable_new() {
+		[ -d "${files[$current_file]}" ]
+
 	}
 
 	enable_scroll_up() {
@@ -231,7 +242,10 @@ while true; do
 	}
 
 	# Make this handle: Already being at the first poem, already being at the last poem and the file being /dev/null (which is the case if there are no files in the directory)
-	controls=" ✧✧ [${scroll_y}-$(($scroll_y + $terminal_lines - $non_content_line_count))/${file_lines}]"
+	controls=" ✧✧ "
+	if enable_edit; then
+		controls="${controls} [${scroll_y}-$(($scroll_y + $terminal_lines - $non_content_line_count))/${file_lines}] "
+	fi
 	if enable_previous_file; then
 		controls="${controls} [←] Previous "
 	fi
@@ -247,7 +261,10 @@ while true; do
 	if enable_edit; then
 		controls="${controls} [e] Edit "
 	fi
-	controls="${controls} [n] New  [q] Quit  ✧✧"
+	if enable_new; then
+		controls="${controls} [n] New "
+	fi
+	controls="${controls} [q] Quit  ✧✧"
 
 	wrap_with_borders "$controls"
 	create_separator
@@ -272,8 +289,10 @@ while true; do
 		fi
 		;;
 	'n')
-		$EDITOR "$poem_dir/.txt"
-		refresh_files=$TRUE
+		if enable_new; then
+			$EDITOR "$poem_dir/.txt"
+			refresh_files=$TRUE
+		fi
 		;;
 	'[A' | '[5') #up
 		if enable_scroll_up; then
