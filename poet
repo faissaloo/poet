@@ -96,7 +96,6 @@ front_buffer=""
 back_buffer="$front_buffer"
 draw_text() {
 	front_buffer="${front_buffer}${1}"
-	#printf "$1"
 }
 render() {
 	previous_height=$(printf "$back_buffer" | fold -s -w "$terminal_columns" | wc -l)
@@ -153,23 +152,28 @@ wrap_with_borders() {
 	fi
 
 	# Left align the text and add vertical borders
-	draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}${newline_char}"
+	draw_text "${vertical}${text}$(printf "%*s" $((content_width - ${#text})))${vertical}${newline_char}"
 }
 
 load_files() {
+	file_lines_array=()
 	total_files=${#files[@]}
 	# Format tabs and wrap text
 	file_content=$(cat "${files[$current_file]}" | sed 's/\t/    /g' | fold -s -w "$(($terminal_columns - $non_content_width))")
-	file_lines=$(echo "$file_content" | wc -l)
+	file_lines=0 #$(echo "$file_content" | wc -l)
+
+	while IFS= read -r line; do
+		file_lines_array+=("${line}")
+		((file_lines++))
+	done < <(echo "${file_content}")
 }
 # We should handle empty directories better
 # Check if the directory exists and contains .txt files
 current_file=0
 refresh_files=$TRUE
-file_content=""
-scroll_y=1
 while true; do
 	if [ $refresh_files == $TRUE ]; then
+		scroll_y=0
 		if [ -f "$poem_dir" ] && file "$poem_dir" | grep -q 'text'; then
 			files=("$poem_dir")
 			load_files
@@ -180,7 +184,7 @@ while true; do
 		else
 			files=()
 			total_files=0
-			file_content="No such text file found"
+			file_lines_array=("No such text file found")
 			file_lines=0
 
 		fi
@@ -198,7 +202,7 @@ while true; do
 
 	# Now calculate the content width of the box (based on longest line)
 	content_width=$((max_line_length + 2)) # Add space for borders
-	box_width=$terminal_columns            # Terminal width
+	box_width="${terminal_columns}"            # Terminal width
 	padding_left=$(((box_width - content_width) / 2))
 	padding_right=$((box_width - content_width - padding_left))
 
@@ -209,10 +213,10 @@ while true; do
 	create_separator
 
 	# Display the content of the file with ornate styling
-	while IFS= read -r line; do
+	for line in "${file_lines_array[@]:${scroll_y}:$((${terminal_lines} - ${non_content_line_count}))}"; do
 		wrap_with_borders "${line_prefix}${line}"
-	done < <(echo "$file_content" | tail -n +"${scroll_y}" | head -n $(("$terminal_lines" - $non_content_line_count)))
-
+	done
+	
 	create_separator
 	fi
 
@@ -241,7 +245,6 @@ while true; do
 		[ $current_file -gt 0 ]
 	}
 
-	# Make this handle: Already being at the first poem, already being at the last poem and the file being /dev/null (which is the case if there are no files in the directory)
 	controls=" ✧✧ "
 	if enable_edit; then
 		controls="${controls} [${scroll_y}-$(($scroll_y + $terminal_lines - $non_content_line_count))/${file_lines}] "
@@ -273,25 +276,24 @@ while true; do
 
 	# Wait for a key press
 	read -rsn1 mode # get 1 character
-	if [[ $mode == $escape_char ]]; then
+	if [[ "${mode}" == "${escape_char}" ]]; then
 		read -rsn2 mode # read 2 more chars
 	fi
-	case $mode in
+	case "${mode}" in
 	'q')
 		echo
 		break
 		;;
 	'e')
 		if enable_edit; then
-			scroll_y=1
 			$EDITOR "${files[$current_file]}"
-			refresh_files=$TRUE
+			refresh_files="${TRUE}"
 		fi
 		;;
 	'n')
 		if enable_new; then
 			$EDITOR "$poem_dir/.txt"
-			refresh_files=$TRUE
+			refresh_files="${TRUE}"
 		fi
 		;;
 	'[A' | '[5') #up
@@ -307,15 +309,13 @@ while true; do
 	'[D') # Left Arrow key (to go back)
 		if enable_previous_file; then
 			((current_file--))
-			scroll_y=1
-			refresh_files=$TRUE
+			refresh_files="${TRUE}"
 		fi
 		;;
 	'[C') # Right Arrow key (to go forward)
 		if enable_next_file; then
 			((current_file++))
-			scroll_y=1
-			refresh_files=$TRUE
+			refresh_files="${TRUE}"
 		fi
 		;;
 	*)
