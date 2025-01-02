@@ -123,7 +123,7 @@ create_frame() {
     local padding_right=$(( content_width - ${#plain_text} - padding_left ))
 
     local midsection="$(printf "%*s" $((content_width)) | sed 's/ /'"$horizontal"'/g')"
-    draw_text "${top_left}${midsection}${top_right}\n${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}\n${bottom_left}${midsection}${bottom_right}"
+    draw_text "${top_left}${midsection}${top_right}\n${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}\n${bottom_left}${midsection}${bottom_right}\n"
 }
 
 # Function to create a matching ornate separator with a complex pattern and vertical borders
@@ -137,7 +137,7 @@ create_separator() {
     local full_pattern=$(printf "%0.s$repeated_pattern" $(seq 1 $((available_width / pattern_length + 1))))  # Create extra repetition to ensure overshoot
 
     # Truncate the pattern to the exact available width, preferring an overage and trimming if necessary
-    draw_text "${vertical_right}${full_pattern:0:$available_width}${vertical_left}"
+    draw_text "${vertical_right}${full_pattern:0:$available_width}${vertical_left}\n"
 }
 
 # Function to wrap a line of text with vertical borders (left aligned)
@@ -152,7 +152,7 @@ wrap_with_borders() {
     fi
 
     # Left align the text and add vertical borders
-    draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}"
+    draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}\n"
 }
 
 # We should handle empty directories better
@@ -218,7 +218,7 @@ enable_scroll_up() {
 }
 
 enable_scroll_down() {
-  [ $scroll_y -lt $(($file_lines - $terminal_lines - $non_content_line_count)) ]
+  [ $(( $scroll_y + $terminal_lines - $non_content_line_count )) -lt $(($file_lines)) ]
 }
 
 enable_next_file() {
