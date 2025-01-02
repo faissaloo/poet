@@ -12,46 +12,46 @@ poem_dir=""
 
 # Function to show help text
 show_help() {
-  echo "Usage: $0 [-h] <fileOrTextFileDirectory>"
-  echo "  <fileOrTextFileDirectory>   A text file, or directory of files ending in .txt"
-  echo "Options:"
-  echo "  -h, --help     Show this help message"
+	echo "Usage: $0 [-h] <fileOrTextFileDirectory>"
+	echo "  <fileOrTextFileDirectory>   A text file, or directory of files ending in .txt"
+	echo "Options:"
+	echo "  -h, --help     Show this help message"
 }
 
 # Parse options
 while getopts "h-:" opt; do
-  case "$opt" in
-    h) 
-      show_help
-      exit 0
-      ;;
-    -)
-      case "${OPTARG}" in
-        help) 
-          show_help
-          exit 0
-          ;;
-        *)
-          echo "Unknown option --${OPTARG}" 
-          exit 1
-          ;;
-      esac
-      ;;
-    *)
-      echo "Invalid option: -$OPTARG"
-      exit 1
-      ;;
-  esac
+	case "$opt" in
+	h)
+		show_help
+		exit 0
+		;;
+	-)
+		case "${OPTARG}" in
+		help)
+			show_help
+			exit 0
+			;;
+		*)
+			echo "Unknown option --${OPTARG}"
+			exit 1
+			;;
+		esac
+		;;
+	*)
+		echo "Invalid option: -$OPTARG"
+		exit 1
+		;;
+	esac
 done
 
 # Check if directory argument is provided
 shift $((OPTIND - 1))
 
 if [ $# -ne 1 ]; then
-  show_help
-  echo
-  echo "Error: Directory argument is required."
-  exit 1
+	show_help
+	echo
+	echo "Error: Directory argument is required."
+	exit 1
 fi
 
 # Assign the directory to the variable
@@ -59,16 +59,16 @@ poem_dir="$1"
 
 # Function to restore terminal to normal
 restore_terminal() {
-    stty echo    # Re-enable character echo
-    tput cnorm   # Show the cursor
+	stty echo  # Re-enable character echo
+	tput cnorm # Show the cursor
 }
 
 # Set trap to restore terminal on exit or interruption
 trap restore_terminal EXIT
 
 # Rendering code starts here.
-tput civis   # Hide the cursor
-stty -echo   # Disable character echo
+tput civis # Hide the cursor
+stty -echo # Disable character echo
 
 # Fancy separators and corners
 top_left="╭"
@@ -101,7 +101,7 @@ draw_text() {
 render() {
 	previous_height=$(printf "$back_buffer" | fold -s -w "$terminal_columns" | wc -l)
 	new_height=$(printf "$front_buffer" | fold -s -w "$terminal_columns" | wc -l)
-	
+
 	#clear the screen entirely if the height has changed to avoid leaving artifacts behind
 	if [ "${previous_height}" -ne "${new_height}" ]; then
 		echo "$(clear)${front_buffer}"
@@ -114,46 +114,46 @@ render() {
 
 # Function to create an ornate frame with proper centering and vertical borders
 create_frame() {
-    local text="$1"
-    # Remove control characters (like tput bold) for width calculation
-    local plain_text=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
-    
-    local width=$terminal_columns  # Get terminal width
-    local content_width=$((width - 2))  # Subtract for vertical borders (2 spaces for each side)
-    local padding_left=$(( (content_width - ${#plain_text}) / 2 ))
-    local padding_right=$(( content_width - ${#plain_text} - padding_left ))
+	local text="$1"
+	# Remove control characters (like tput bold) for width calculation
+	local plain_text=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
 
-    local midsection="$(printf "%*s" $((content_width)) | sed 's/ /'"$horizontal"'/g')"
-    draw_text "${top_left}${midsection}${top_right}${newline_char}${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}${newline_char}${bottom_left}${midsection}${bottom_right}${newline_char}"
+	local width=$terminal_columns      # Get terminal width
+	local content_width=$((width - 2)) # Subtract for vertical borders (2 spaces for each side)
+	local padding_left=$(((content_width - ${#plain_text}) / 2))
+	local padding_right=$((content_width - ${#plain_text} - padding_left))
+
+	local midsection="$(printf "%*s" $((content_width)) | sed 's/ /'"$horizontal"'/g')"
+	draw_text "${top_left}${midsection}${top_right}${newline_char}${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}${newline_char}${bottom_left}${midsection}${bottom_right}${newline_char}"
 }
 
 # Function to create a matching ornate separator with a complex pattern and vertical borders
 create_separator() {
-    local width=$terminal_columns  # Get the current terminal width
-    local pattern_length=${#separator_pattern}
-    local available_width=$((width - 2))  # Subtract 2 for vertical borders
+	local width=$terminal_columns # Get the current terminal width
+	local pattern_length=${#separator_pattern}
+	local available_width=$((width - 2)) # Subtract 2 for vertical borders
 
-    # Create the separator by repeating the pattern to fit the available width
-    local repeated_pattern=$(echo $separator_pattern | sed 's/\(.\)/\1 /g' | sed 's/ //g')
-    local full_pattern=$(printf "%0.s$repeated_pattern" $(seq 1 $((available_width / pattern_length + 1))))  # Create extra repetition to ensure overshoot
+	# Create the separator by repeating the pattern to fit the available width
+	local repeated_pattern=$(echo $separator_pattern | sed 's/\(.\)/\1 /g' | sed 's/ //g')
+	local full_pattern=$(printf "%0.s$repeated_pattern" $(seq 1 $((available_width / pattern_length + 1)))) # Create extra repetition to ensure overshoot
 
-    # Truncate the pattern to the exact available width, preferring an overage and trimming if necessary
-    draw_text "${vertical_right}${full_pattern:0:$available_width}${vertical_left}${newline_char}"
+	# Truncate the pattern to the exact available width, preferring an overage and trimming if necessary
+	draw_text "${vertical_right}${full_pattern:0:$available_width}${vertical_left}${newline_char}"
 }
 
 # Function to wrap a line of text with vertical borders (left aligned)
 wrap_with_borders() {
-    local text="$1"
-    local width=$terminal_columns
-    local content_width=$((width - 2))  # Subtract for the vertical borders
+	local text="$1"
+	local width=$terminal_columns
+	local content_width=$((width - 2)) # Subtract for the vertical borders
 
-    # Ensure the text fits within the available content width
-    if [ ${#text} -gt $content_width ]; then
-        text="${text:0:$content_width}..."
-    fi
+	# Ensure the text fits within the available content width
+	if [ ${#text} -gt $content_width ]; then
+		text="${text:0:$content_width}..."
+	fi
 
-    # Left align the text and add vertical borders
-    draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}${newline_char}"
+	# Left align the text and add vertical borders
+	draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}${newline_char}"
 }
 
 # We should handle empty directories better
@@ -163,142 +163,144 @@ refresh_files=$TRUE
 file_content=""
 scroll_y=1
 while true; do
-if [ $refresh_files == $TRUE ]; then
-	if [ -f "$poem_dir" ] && file "$poem_dir" | grep -q 'text'; then
-	    files=("$poem_dir")
-            total_files=${#files[@]}
-	    file_content=$(cat "${files[$current_file]}" | fold -s -w "$(( $terminal_columns - $non_content_width ))")
-	    file_lines=$(echo "$file_content" | wc -l)
-	elif [ -d "$poem_dir" ] && ls "$poem_dir"/*.txt 1> /dev/null 2>&1; then
-            # Store the files in an array
-            files=("$poem_dir"/*.txt)
-            total_files=${#files[@]}
-            file_content=$(cat "${files[$current_file]}" | fold -s -w "$(( $terminal_columns - $non_content_width ))")
-            file_lines=$(echo "$file_content" | wc -l)
-        else
-            files=("/dev/null")
-            total_files=0
-            file_content="No such text file found"
-            file_lines=0
-        fi
-        refresh_files=$FALSE
-fi
+	if [ $refresh_files == $TRUE ]; then
+		if [ -f "$poem_dir" ] && file "$poem_dir" | grep -q 'text'; then
+			files=("$poem_dir")
+			total_files=${#files[@]}
+			file_content=$(cat "${files[$current_file]}" | fold -s -w "$(($terminal_columns - $non_content_width))")
+			file_lines=$(echo "$file_content" | wc -l)
+		elif [ -d "$poem_dir" ] && ls "$poem_dir"/*.txt 1>/dev/null 2>&1; then
+			# Store the files in an array
+			files=("$poem_dir"/*.txt)
+			total_files=${#files[@]}
+			file_content=$(cat "${files[$current_file]}" | fold -s -w "$(($terminal_columns - $non_content_width))")
+			file_lines=$(echo "$file_content" | wc -l)
+		else
+			files=("/dev/null")
+			total_files=0
+			file_content="No such text file found"
+			file_lines=0
+		fi
+		refresh_files=$FALSE
+	fi
 
-# Extract the file name without path
-filename="${files[$current_file]##*/}"
+	# Extract the file name without path
+	filename="${files[$current_file]##*/}"
 
-# Find the longest line in the file to determine the box width
-max_line_length=$terminal_columns
+	# Find the longest line in the file to determine the box width
+	max_line_length=$terminal_columns
 
-# Now calculate the content width of the box (based on longest line)
-content_width=$((max_line_length + 2))  # Add space for borders
-box_width=$terminal_columns  # Terminal width
-padding_left=$(( (box_width - content_width) / 2 ))
-padding_right=$(( box_width - content_width - padding_left ))
+	# Now calculate the content width of the box (based on longest line)
+	content_width=$((max_line_length + 2)) # Add space for borders
+	box_width=$terminal_columns            # Terminal width
+	padding_left=$(((box_width - content_width) / 2))
+	padding_right=$((box_width - content_width - padding_left))
 
-# Display the ornate header with the file name and position in sequence
-create_frame "${filename}"
-wrap_with_borders "${meta_prefix}${poem_dir} $current_file/$total_files"
-wrap_with_borders "${meta_prefix}Last modified: $(date -r "${files[$current_file]}" +'%Y-%m-%d %H:%M:%S')"
-create_separator
+	# Display the ornate header with the file name and position in sequence
+	create_frame "${filename}"
+	wrap_with_borders "${meta_prefix}${poem_dir} $current_file/$total_files"
+	wrap_with_borders "${meta_prefix}Last modified: $(date -r "${files[$current_file]}" +'%Y-%m-%d %H:%M:%S')"
+	create_separator
 
-# Display the content of the file with ornate styling
-while IFS= read -r line; do
-    wrap_with_borders "${line_prefix}${line}"
-done < <(echo "$file_content" | tail -n +"${scroll_y}" | head -n $(( "$terminal_lines" - $non_content_line_count )))
+	# Display the content of the file with ornate styling
+	while IFS= read -r line; do
+		wrap_with_borders "${line_prefix}${line}"
+	done < <(echo "$file_content" | tail -n +"${scroll_y}" | head -n $(("$terminal_lines" - $non_content_line_count)))
 
-# Add a footer with ornate styling
-create_separator
+	# Add a footer with ornate styling
+	create_separator
 
-enable_edit() {
-  [ "${files[$current_file]}" != "/dev/null" ]
-}
+	enable_edit() {
+		[ "${files[$current_file]}" != "/dev/null" ]
+	}
 
-enable_scroll_up() {
-  [ $scroll_y -gt 1 ]
-}
+	enable_scroll_up() {
+		[ $scroll_y -gt 1 ]
+	}
 
-enable_scroll_down() {
-  [ $(( $scroll_y + $terminal_lines - $non_content_line_count )) -lt $(($file_lines)) ]
-}
+	enable_scroll_down() {
+		[ $(($scroll_y + $terminal_lines - $non_content_line_count)) -lt $(($file_lines)) ]
+	}
 
-enable_next_file() {
-  [ $current_file -lt $(( $total_files - 1 )) ]
-}
+	enable_next_file() {
+		[ $current_file -lt $(($total_files - 1)) ]
+	}
 
-enable_previous_file() {
-  [ $current_file -gt 0 ]
-}
+	enable_previous_file() {
+		[ $current_file -gt 0 ]
+	}
 
+	# Make this handle: Already being at the first poem, already being at the last poem and the file being /dev/null (which is the case if there are no files in the directory)
+	controls=" ✧✧ [${scroll_y}-$(($scroll_y + $terminal_lines - $non_content_line_count))/${file_lines}]"
+	if enable_previous_file; then
+		controls="${controls} [←] Previous "
+	fi
+	if enable_next_file; then
+		controls="${controls} [→] Next "
+	fi
+	if enable_scroll_up; then
+		controls="${controls} [↑] Up "
+	fi
+	if enable_scroll_down; then #make this the length of the file
+		controls="${controls} [↓] Down "
+	fi
+	if enable_edit; then
+		controls="${controls} [e] Edit "
+	fi
+	controls="${controls} [n] New  [q] Quit  ✧✧"
 
-# Make this handle: Already being at the first poem, already being at the last poem and the file being /dev/null (which is the case if there are no files in the directory)
-controls=" ✧✧ [${scroll_y}-$(($scroll_y + $terminal_lines - $non_content_line_count))/${file_lines}]"
-if enable_previous_file; then
-        controls="${controls} [←] Previous "
-fi
-if enable_next_file; then
-        controls="${controls} [→] Next "
-fi
-if enable_scroll_up; then
-        controls="${controls} [↑] Up "
-fi
-if enable_scroll_down; then #make this the length of the file
-        controls="${controls} [↓] Down "
-fi
-if enable_edit; then
-        controls="${controls} [e] Edit "
-fi
-controls="${controls} [n] New  [q] Quit  ✧✧"
+	wrap_with_borders "$controls"
+	create_separator
 
-wrap_with_borders "$controls"
-create_separator
+	render
 
-render
-
-# Wait for a key press
-read -rsn1 mode  # get 1 character
-if [[ $mode == $escape_char ]]; then
-    read -rsn2 mode  # read 2 more chars
-fi
-case $mode in
-    'q') echo; break ;;
-    'e')
-        if enable_edit; then
-           scroll_y=1
-           $EDITOR "${files[$current_file]}"
-           refresh_files=$TRUE
-        fi
-        ;;
-    'n')
-        $EDITOR "$poem_dir/.txt"
-        refresh_files=$TRUE
-        ;;
-    '[A'|'[5') #up
-        if enable_scroll_up; then
-           ((scroll_y--))
-        fi
-        ;;
-    '[B'|'[6') #down
-        if enable_scroll_down; then
-           ((scroll_y++))
-        fi
-        ;;
-    '[D')  # Left Arrow key (to go back)
-        if enable_previous_file; then
-            ((current_file--))
-            scroll_y=1
-            refresh_files=$TRUE
-        fi
-        ;;
-    '[C')  # Right Arrow key (to go forward)
-        if enable_next_file; then
-            ((current_file++))
-            scroll_y=1
-            refresh_files=$TRUE
-        fi
-        ;;
-    *)
-        continue
-        ;;
-esac
+	# Wait for a key press
+	read -rsn1 mode # get 1 character
+	if [[ $mode == $escape_char ]]; then
+		read -rsn2 mode # read 2 more chars
+	fi
+	case $mode in
+	'q')
+		echo
+		break
+		;;
+	'e')
+		if enable_edit; then
+			scroll_y=1
+			$EDITOR "${files[$current_file]}"
+			refresh_files=$TRUE
+		fi
+		;;
+	'n')
+		$EDITOR "$poem_dir/.txt"
+		refresh_files=$TRUE
+		;;
+	'[A' | '[5') #up
+		if enable_scroll_up; then
+			((scroll_y--))
+		fi
+		;;
+	'[B' | '[6') #down
+		if enable_scroll_down; then
+			((scroll_y++))
+		fi
+		;;
+	'[D') # Left Arrow key (to go back)
+		if enable_previous_file; then
+			((current_file--))
+			scroll_y=1
+			refresh_files=$TRUE
+		fi
+		;;
+	'[C') # Right Arrow key (to go forward)
+		if enable_next_file; then
+			((current_file++))
+			scroll_y=1
+			refresh_files=$TRUE
+		fi
+		;;
+	*)
+		continue
+		;;
+	esac
 done
