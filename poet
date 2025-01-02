@@ -272,12 +272,12 @@ case $mode in
         $EDITOR "$poem_dir/.txt"
         refresh_files=$TRUE
         ;;
-    '[A') #up
+    '[A'|'[5') #up
         if enable_scroll_up; then
            ((scroll_y--))
         fi
         ;;
-    '[B') #down
+    '[B'|'[6') #down
         if enable_scroll_down; then
            ((scroll_y++))
         fi
