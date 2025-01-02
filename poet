@@ -12,8 +12,8 @@ poem_dir=""
 
 # Function to show help text
 show_help() {
-  echo "Usage: $0 [-h] <directory>"
-  echo "  <directory>   The directory for your textfiles."
+  echo "Usage: $0 [-h] <fileOrTextFileDirectory>"
+  echo "  <fileOrTextFileDirectory>   A text file, or directory of files ending in .txt"
   echo "Options:"
   echo "  -h, --help     Show this help message"
 }
@@ -163,17 +163,21 @@ file_content=""
 scroll_y=1
 while true; do
 if [ $refresh_files == $TRUE ]; then
-        #scroll_y=1
-        if [ -d "$poem_dir" ] && ls "$poem_dir"/*.txt 1> /dev/null 2>&1; then
+	if [ -f "$poem_dir" ] && file "$poem_dir" | grep -q 'text'; then
+	    files=("$poem_dir")
+            total_files=${#files[@]}
+	    file_content=$(cat "${files[$current_file]}" | fold -s -w "$(( $terminal_columns - $non_content_width ))")
+	    file_lines=$(echo "$file_content" | wc -l)
+	elif [ -d "$poem_dir" ] && ls "$poem_dir"/*.txt 1> /dev/null 2>&1; then
             # Store the files in an array
             files=("$poem_dir"/*.txt)
             total_files=${#files[@]}
             file_content=$(cat "${files[$current_file]}" | fold -s -w "$(( $terminal_columns - $non_content_width ))")
             file_lines=$(echo "$file_content" | wc -l)
         else
-            files=(/dev/null)
+            files=("/dev/null")
             total_files=0
-            file_content=""
+            file_content="No such text file found"
             file_lines=0
         fi
         refresh_files=$FALSE
