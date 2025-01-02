@@ -57,6 +57,19 @@ fi
 # Assign the directory to the variable
 poem_dir="$1"
 
+# Function to restore terminal to normal
+restore_terminal() {
+    stty echo    # Re-enable character echo
+    tput cnorm   # Show the cursor
+}
+
+# Set trap to restore terminal on exit or interruption
+trap restore_terminal EXIT
+
+# Rendering code starts here.
+tput civis   # Hide the cursor
+stty -echo   # Disable character echo
+
 # Fancy separators and corners
 top_left="╭"
 top_right="╮"
@@ -78,6 +91,26 @@ terminal_columns=$(tput cols)
 terminal_lines=$(tput lines)
 escape_char=$(printf "\u1b")
 
+front_buffer=""
+back_buffer="$front_buffer"
+draw_text() {
+	front_buffer="${front_buffer}${1}"
+	#printf "$1"
+}
+render() {
+	previous_height=$(printf "$back_buffer" | fold -s -w "$terminal_columns" | wc -l)
+	new_height=$(printf "$front_buffer" | fold -s -w "$terminal_columns" | wc -l)
+	
+	#clear the screen entirely if the height has changed to avoid leaving artifacts behind
+	if [ "${previous_height}" -ne "${new_height}" ]; then
+		printf "$(clear)${front_buffer}"
+	else
+		printf "$(tput cup 0 0)${front_buffer}"
+	fi
+	back_buffer="${front_buffer}"
+	front_buffer=""
+}
+
 # Function to create an ornate frame with proper centering and vertical borders
 create_frame() {
     local text="$1"
@@ -90,7 +123,7 @@ create_frame() {
     local padding_right=$(( content_width - ${#plain_text} - padding_left ))
 
     local midsection="$(printf "%*s" $((content_width)) | sed 's/ /'"$horizontal"'/g')"
-    echo -e "${top_left}${midsection}${top_right}\n${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}\n${bottom_left}${midsection}${bottom_right}"
+    draw_text "${top_left}${midsection}${top_right}\n${vertical}$(printf "%*s%s%*s" $padding_left "" "$text" $padding_right)${vertical}\n${bottom_left}${midsection}${bottom_right}"
 }
 
 # Function to create a matching ornate separator with a complex pattern and vertical borders
@@ -104,7 +137,7 @@ create_separator() {
     local full_pattern=$(printf "%0.s$repeated_pattern" $(seq 1 $((available_width / pattern_length + 1))))  # Create extra repetition to ensure overshoot
 
     # Truncate the pattern to the exact available width, preferring an overage and trimming if necessary
-    echo "${vertical_right}${full_pattern:0:$available_width}${vertical_left}"
+    draw_text "${vertical_right}${full_pattern:0:$available_width}${vertical_left}"
 }
 
 # Function to wrap a line of text with vertical borders (left aligned)
@@ -119,7 +152,7 @@ wrap_with_borders() {
     fi
 
     # Left align the text and add vertical borders
-    echo -e "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}"
+    draw_text "${vertical}$text$(printf "%*s" $((content_width - ${#text})))${vertical}"
 }
 
 # We should handle empty directories better
@@ -130,7 +163,6 @@ file_content=""
 scroll_y=1
 while true; do
 if [ $refresh_files == $TRUE ]; then
-        clear
         #scroll_y=1
         if [ -d "$poem_dir" ] && ls "$poem_dir"/*.txt 1> /dev/null 2>&1; then
             # Store the files in an array
@@ -146,8 +178,6 @@ if [ $refresh_files == $TRUE ]; then
         fi
         refresh_files=$FALSE
 fi
-
-tput cup 0 0 #prepare to redraw the screen
 
 # Extract the file name without path
 filename="${files[$current_file]##*/}"
@@ -218,6 +248,8 @@ controls="${controls} [n] New  [q] Quit  ✧✧"
 wrap_with_borders "$controls"
 create_separator
 
+render
+
 # Wait for a key press
 read -rsn1 mode  # get 1 character
 if [[ $mode == $escape_char ]]; then
@@ -227,6 +259,7 @@ case $mode in
     'q') echo; break ;;
     'e')
         if enable_edit; then
+           scroll_y=1
            $EDITOR "${files[$current_file]}"
            refresh_files=$TRUE
         fi
